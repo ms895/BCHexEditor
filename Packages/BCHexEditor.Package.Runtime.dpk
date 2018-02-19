@@ -28,7 +28,8 @@ package BCHexEditor.Package.Runtime;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl;
+  rtl,
+  vcl;
 
 contains
   BCHexEditor in '..\Source\BCHexEditor.pas',

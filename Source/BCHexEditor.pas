@@ -1587,11 +1587,9 @@ function GetTempName: string;
   - IntToRadix(100,8) means IntToOctal<br>
   <br>
   hint: Radix must be in the range of 2..16*)
-function IntToRadix(Value: integer; Radix: byte): string;
-function IntToRadix64(Value: int64; Radix: byte): string;
+function IntToRadix(Value: int64; Radix: byte): string;
 // translate an integer to a radix coded string and left fill with 0 (see also @link(IntToRadix))
-function IntToRadixLen(Value: integer; Radix, Len: byte): string;
-function IntToRadixLen64(Value: int64; Radix, Len: byte): string;
+function IntToRadixLen(Value: int64; Radix, Len: byte): string;
 // translate an integer to an octal string (see also @link(IntToRadix))
 function IntToOctal(const Value: integer): string;
 
@@ -1599,36 +1597,7 @@ function IntToOctal(const Value: integer): string;
   - RadixToInt('0f', 16) => 15<br>
   - RadixToInt('755', 8) => 493
 *)
-function RadixToInt(Value: string; Radix: byte): integer;
-function RadixToInt64(Value: string; Radix: byte): int64;
-
-(* 64 bit unsigned integer arithmetics *)
-
-// division of two unsigned int64 values, may raise an exception on error
-function DivideU64(const Dividend, Divisor: int64): int64;
-// division of two unsigned int64 values, returns false if an error occurred
-function TryDivideU64(const Dividend, Divisor: int64;
-  var Val: int64): boolean;
-// modulo of two unsigned int64 values, may raise an exception on error
-function ModuloU64(const Dividend, Divisor: int64): int64;
-// modulo of two unsigned int64 values, returns false if an error occurred
-function TryModuloU64(const Dividend, Divisor: int64;
-  var Val: int64): boolean;
-// multiplication of two unsigned int64 values, may raise an exception on error
-function MultiplyU64(const Multiplier, Multiplicator: int64): int64;
-// multiplication of two unsigned int64 values, returns false if an error occurred
-function TryMultiplyU64(const Multiplier, Multiplicator: int64;
-  var Val: int64): boolean;
-// addition of two unsigned int64 values, may raise an exception on error
-function AddU64(const Addend1, Addend2: int64): int64;
-// addition of two unsigned int64 values, returns false if an error occurred
-function TryAddU64(const Addend1, Addend2: int64;
-  var Val: int64): boolean;
-// subtraction of two unsigned int64 values, may raise an exception on error
-function SubtractU64(const Minuend, Subtrahend: int64): int64;
-// subtraction of two unsigned int64 values, returns false if an error occurred
-function TrySubtractU64(const Minuend, Subtrahend: int64;
-  var Val: int64): boolean;
+function RadixToInt(Value: string; Radix: byte): int64;
 
 (* try to find the correct radix (based on prefix/suffix) and return the number, known
    prefixes/suffixes are:<br>
@@ -1637,8 +1606,7 @@ function TrySubtractU64(const Minuend, Subtrahend: int64;
    %&lt;number&gt;, &lt;number&gt;%: radix 2<br>
    otherwise: radix 10
 *)
-function CheckRadixToInt(Value: string): integer;
-function CheckRadixToInt64(Value: string): int64;
+function CheckRadixToInt(Value: string): int64;
 
 // translate an number string built on radix 8 into an integer (see also @link(RadixToInt))
 function OctalToInt(const Value: string): integer;
@@ -1988,420 +1956,19 @@ end;
 
 // translate an integer to a radix coded string
 
-function IntToRadix(Value: integer; Radix: byte): string;
+function IntToRadix(Value: int64; Radix: byte): string;
 begin
   Result := IntToRadixLen(Value, Radix, 0);
 end;
 
-function IntToRadix64(Value: int64; Radix: byte): string;
-begin
-  Result := IntToRadixLen64(Value, Radix, 0);
-end;
-
 // translate an integer to a radix coded string and left fill with 0
 
-function IntToRadixLen(Value: integer; Radix, Len: byte): string;
-var
-  LCrdTemp: cardinal absolute Value;
+function IntToRadixLen(Value: int64; Radix, Len: byte): string;
 begin
   Result := '';
   repeat
-    Result := HEX_UPPER[(LCrdTemp mod Radix) + 1] + Result;
-    LCrdTemp := LCrdTemp div Radix;
-  until LCrdTemp = 0;
-  while Length(Result) < Len do
-    Result := '0' + Result;
-end;
-
-// unsigned 64 bit integer routines (division and modulo)
-// this code is derived from assembler code written by
-// Norbert Juffa, found on "the assembly gems page"
-// (http://www.df.lth.se/~john_e/)
-
-procedure _UModDiv64;
-begin
-  asm
-    // divisor > 2^32-1 ?
-    test ecx, ecx
-
-    // yes, divisor > 32^32-1
-    jnz @big_divisor
-
-    // only one division needed ? (ecx = 0)
-    cmp edx, ebx
-
-    // yes, one division sufficient
-    jb @one_div
-
-    // save dividend-lo in ecx
-    mov ecx, eax
-
-    // get dividend-hi
-    mov eax, edx
-
-    // zero extend it into edx:eax
-    xor edx, edx
-
-    // quotient-hi in eax
-    div ebx
-
-    // ecx = quotient-hi, eax =dividend-lo
-    xchg eax, ecx
-
-@one_div:
-
-    // eax = quotient-lo
-    div ebx
-
-    //ebx = remainder-lo
-    mov ebx, edx
-
-    //edx = quotient-hi(quotient in edx:eax)
-    mov edx, ecx
-
-    // ecx = remainder-hi (rem. in ecx:ebx)
-    xor ecx, ecx
-    jmp @cleanup;
-
-@big_divisor:
-
-    //  save dividend
-    push edx
-    push eax
-
-    // divisor now in edi:ebx and ecx:esi
-    mov esi, ebx
-    mov edi, ecx
-
-    // shift both divisor and and dividend right by 1 bit
-    shr edx, 1
-    rcr eax, 1
-    ror edi, 1
-    rcr ebx, 1
-
-    // ecx = number of remaining shifts
-    bsr ecx, ecx
-
-    // scale down divisor and dividend such that divisor less than 2^32 (i.e. fits in ebx)
-    shrd ebx, edi, CL
-    shrd eax, edx, CL
-    shr edx, CL
-
-    //  restore original divisor (edi:esi)
-    rol edi, 1
-
-    // compute quotient
-    div ebx
-
-    // get dividend lo-word
-    pop ebx
-
-    // save quotient
-    mov ecx, eax
-
-    // quotient * divisor hi-word (low only)
-    imul edi, eax
-
-    // quotient * divisor lo-word
-    mul esi
-
-    // edx:eax = quotient * divisor
-    add edx, edi
-
-    // dividend-lo - (quot.*divisor)-lo
-    sub ebx, eax
-
-    // get quotient
-    mov eax, ecx
-
-    // restore dividend hi-word
-    pop ecx
-
-    // subtract divisor * quot. from dividend
-    sbb ecx, edx
-
-    // 0 if remainder > 0, else FFFFFFFFh
-    sbb edx, edx
-
-    // nothing to add
-    and esi, edx
-
-    // back if remainder positive
-    and edi, edx
-
-    // correct remaider and quotient if necessary
-    add ebx, esi
-    adc ecx, edi
-    add eax, edx
-
-    // clear hi-word of quot (eax<=FFFFFFFFh)
-    xor edx, edx
-
-@cleanup:
-  end;
-end;
-
-{$WARNINGS OFF}
-
-function UDiv64(I1, I2: Int64): int64;
-begin
-  asm
-    // save registers
-    push ebp
-    push ebx
-    push esi
-    push edi
-
-    // load I2 into ebx/ecx
-    mov ebx, [ebp+$08];
-    mov ecx, [ebp+$0c];
-
-    // load I1 into eax/edx
-    mov eax, [ebp+$10];
-    mov edx, [ebp+$14];
-
-    call _UModDiv64
-
-    // store result (division result is in eax:edx)
-    mov [ebp-$08], eax;
-    mov [ebp-$04], edx;
-
-    // restore registers
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-  end;
-end;
-
-function UMod64(I1, I2: Int64): int64;
-begin
-  asm
-    // save registers
-    push ebp
-    push ebx
-    push esi
-    push edi
-
-    // load I2 into ebx/ecx
-    mov ebx, [ebp+$08];
-    mov ecx, [ebp+$0c];
-
-    // load I1 into eax/edx
-    mov eax, [ebp+$10];
-    mov edx, [ebp+$14];
-
-    call _UModDiv64
-
-    // store result (division remainder is in ebx:ecx)
-    mov [ebp-$08], ebx;
-    mov [ebp-$04], ecx;
-
-    // restore registers
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-  end;
-end;
-{$WARNINGS ON}
-
-(* 64 bit unsigned integer arithmetics *)
-
-function DivideU64(const Dividend, Divisor: int64): int64;
-begin
-  Result := UDiv64(Dividend, Divisor);
-end;
-
-function TryDivideU64(const Dividend, Divisor: int64;
-  var Val: int64): boolean;
-begin
-  Result := True;
-  try
-    Val := UDiv64(Dividend, Divisor);
-  except
-    Result := False;
-  end;
-end;
-
-function ModuloU64(const Dividend, Divisor: int64): int64;
-begin
-  Result := UMod64(Dividend, Divisor);
-end;
-
-function TryModuloU64(const Dividend, Divisor: int64;
-  var Val: int64): boolean;
-begin
-  Result := True;
-  try
-    Val := UMod64(Dividend, Divisor);
-  except
-    Result := False;
-  end;
-end;
-
-// unsigned 64 bit integer routines (multiplication, addition, substraction)
-// this code is derived from assembler code found in the online book
-// "Art of Assembly Programming" maintained by Randall Hyde
-// (http://webster.cs.ucr.edu/)
-
-function TryMultiplyU64(const Multiplier, Multiplicator: int64;
-  var Val: int64): boolean;
-asm
-  // save registers
-  push ebx
-  push esi
-
-  mov byte ptr result, 1
-
-  // store val pointer
-  mov esi, eax
-
-  // multiply lo dword of multiplier * lo dword of multiplicator
-  mov eax, dword ptr Multiplier
-  mul dword ptr Multiplicator
-
-  // save lo dword
-  mov dword [esi], eax
-
-  // save hi dword of partial product
-  mov ecx, edx
-
-  // multiply lo dword of multiplier * hi dword of multiplicator
-  mov eax, dword ptr Multiplier
-  mul dword ptr Multiplicator+4
-
-  // add to the partial product (including carry)
-  add eax, ecx
-  adc edx, 0
-
-  // save partial product
-  mov ebx, eax
-  mov ecx, edx
-
-  // multiply hi dword of multiplier * lo dword of multiplicator
-  mov eax, dword ptr Multiplier+4
-  mul dword ptr Multiplicator
-
-  // add the partial product
-  add eax, ebx
-
-  // save the partial product
-  mov dword ptr [esi+4], eax
-
-  // add in the carry flag
-  adc ecx, edx
-
-  // save carry
-  pushfd
-
-  // multiply hi dword of multiplier * hi dword of multiplicator
-  mov eax, dword ptr Multiplier+4
-  mul dword ptr Multiplicator+4
-
-  // load carry
-  popfd
-
-  // add partial product + carry
-  adc eax, ecx
-  adc edx, 0
-
-  // check overflow
-  test eax, eax
-  jnz @over
-  test edx, edx
-  jz @finish
-
-@over:
-  // overflow
-  mov byte ptr result, 0
-
-@finish:
-  // restore register
-  pop esi
-  pop ebx
-end;
-
-function MultiplyU64(const Multiplier, Multiplicator: int64): int64;
-begin
-  if not TryMultiplyU64(Multiplier, Multiplicator, Result) then
-    raise EIntOverflow.Create(SIntOverflow);
-end;
-
-function TryAddU64(const Addend1, Addend2: int64;
-  var Val: int64): boolean;
-asm
-  mov byte ptr result, 1
-
-  // store val pointer
-  mov edx, eax
-
-  // add lo dwords
-  mov eax, dword ptr Addend1
-  add eax, dword ptr Addend2
-
-  // store lo dword
-  mov dword ptr [edx], eax
-
-  // add hi dwords + carry
-  mov eax, dword ptr Addend1+4
-  adc eax, dword ptr Addend2+4
-
-  // store hi dword
-  mov dword ptr [edx+4], eax
-
-  // check carry
-  jnc @finish
-  mov byte ptr result, 0
-@finish:
-end;
-
-function AddU64(const Addend1, Addend2: int64): int64;
-begin
-  if not TryAddU64(Addend1, Addend2, Result) then
-    raise EIntOverflow.Create(SIntOverflow);
-end;
-
-function TrySubtractU64(const Minuend, Subtrahend: int64;
-  var Val: int64): boolean;
-asm
-  mov byte ptr result, 1
-
-  // store val pointer
-  mov edx, eax
-
-  // subtract lo dwords
-  mov eax, dword ptr Minuend
-  sub eax, dword ptr Subtrahend
-
-  // store lo dword
-  mov dword ptr [edx], eax
-
-  // subtract hi dwords - carry
-  mov eax, dword ptr Minuend+4
-  sbb eax, dword ptr Subtrahend+4
-
-  // store hi dword
-  mov dword ptr [edx+4], eax
-
-  // check carry
-  jnc @finish
-  mov byte ptr result, 0
-@finish:
-end;
-
-function SubtractU64(const Minuend, Subtrahend: int64): int64;
-begin
-  if not TrySubtractU64(Minuend, Subtrahend, Result) then
-    raise EIntOverflow.Create(SIntOverflow);
-end;
-
-function IntToRadixLen64(Value: int64; Radix, Len: byte): string;
-begin
-  Result := '';
-  repeat
-    Result := HEX_UPPER[UMod64(Value, Radix) + 1] + Result;
-    Value := UDiv64(Value, Radix);
+    Result := HEX_UPPER[(Value mod Radix) + 1] + Result;
+    Value := Value div Radix;
   until Value = 0;
   while Length(Result) < Len do
     Result := '0' + Result;
@@ -2416,22 +1983,7 @@ end;
 
 // translate a radix coded string into an integer
 
-function RadixToInt(Value: string; Radix: byte): integer;
-var
-  LCrdTemp: cardinal absolute Result;
-begin
-  LCrdTemp := 0;
-  Value := UpperCase(Value);
-  while Value <> '' do
-  begin
-    if not (Pos(Value[1], HEX_UPPER) in [1..Radix]) then
-      raise EBCHexEditor.CreateFmt(ERR_INVALID_RADIXCHAR, [Value[1], Radix]);
-    LCrdTemp := LCrdTemp * Radix + cardinal(Pos(Value[1], HEX_UPPER) - 1);
-    Delete(Value, 1, 1);
-  end;
-end;
-
-function RadixToInt64(Value: string; Radix: byte): int64;
+function RadixToInt(Value: string; Radix: byte): int64;
 begin
   Result := 0;
   Value := UpperCase(Value);
@@ -2452,7 +2004,7 @@ end;
    otherwise: radix 10
 *)
 
-function CheckRadixToInt(Value: string): integer;
+function CheckRadixToInt(Value: string): int64;
 begin
   // hex
   if UpperCase(Copy(Value, 1, 2)) = '0X' then
@@ -2471,30 +2023,6 @@ begin
     Result := RadixToInt(Copy(Value, 1, Length(Value) - 1), 2)
   else if UpperCase(Copy(Value, 1, 1)) = '%' then
     Result := RadixToInt(Copy(Value, 2, MaxInt), 2)
-  else
-    // decimal
-    Result := SysUtils.StrToInt(Value);
-end;
-
-function CheckRadixToInt64(Value: string): int64;
-begin
-  // hex
-  if UpperCase(Copy(Value, 1, 2)) = '0X' then
-    Result := RadixToInt64(Copy(Value, 3, MaxInt), 16)
-  else if Copy(Value, 1, 1) = '$' then
-    Result := RadixToInt64(Copy(Value, 2, MaxInt), 16)
-  else if UpperCase(Copy(Value, Length(Value), 1)) = 'H' then
-    Result := RadixToInt64(Copy(Value, 1, Length(Value) - 1), 16)
-  else {// octal} if UpperCase(Copy(Value, Length(Value), 1)) = 'O' then
-    Result := RadixToInt64(Copy(Value, 1, Length(Value) - 1), 8)
-  else if UpperCase(Copy(Value, 1, 1)) = 'O' then
-    Result := RadixToInt64(Copy(Value, 2, MaxInt), 8)
-      (* removed, is ambigous else if (Copy(Value, 1, 1) = '0') and (AllCharsIn(['0'..'7'])) then
-  Result := RadixToInt(Value, 8)*)
-  else {// binary} if UpperCase(Copy(Value, Length(Value), 1)) = '%' then
-    Result := RadixToInt64(Copy(Value, 1, Length(Value) - 1), 2)
-  else if UpperCase(Copy(Value, 1, 1)) = '%' then
-    Result := RadixToInt64(Copy(Value, 2, MaxInt), 2)
   else
     // decimal
     Result := StrToInt64(Value)
