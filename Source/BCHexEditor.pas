@@ -1587,9 +1587,9 @@ function GetTempName: string;
   - IntToRadix(100,8) means IntToOctal<br>
   <br>
   hint: Radix must be in the range of 2..16*)
-function IntToRadix(Value: int64; Radix: byte): string;
+function IntToRadix(Value: int64; Radix: byte): string; overload;
 // translate an integer to a radix coded string and left fill with 0 (see also @link(IntToRadix))
-function IntToRadixLen(Value: int64; Radix, Len: byte): string;
+function IntToRadix(Value: int64; Radix, Len: byte): string; overload;
 // translate an integer to an octal string (see also @link(IntToRadix))
 function IntToOctal(const Value: integer): string;
 
@@ -1956,14 +1956,14 @@ end;
 
 // translate an integer to a radix coded string
 
-function IntToRadix(Value: int64; Radix: byte): string;
+function IntToRadix(Value: int64; Radix: byte): string; inline;
 begin
-  Result := IntToRadixLen(Value, Radix, 0);
+  Result := IntToRadix(Value, Radix, 0);
 end;
 
 // translate an integer to a radix coded string and left fill with 0
 
-function IntToRadixLen(Value: int64; Radix, Len: byte): string;
+function IntToRadix(Value: int64; Radix, Len: byte): string;
 begin
   Result := '';
   repeat
@@ -5184,7 +5184,7 @@ begin
       begin
         if (MinWidth <> 0) or (Position <> 0) then
         begin
-          Result := IntToRadixLen(Position div _BytesPerUnit, Radix, MinWidth);
+          Result := IntToRadix(Position div _BytesPerUnit, Radix, MinWidth);
           for I := 1 to Length(Result) - 1 do
             if not FHexLowercase then
               Result[I] := UpCase(Result[I])
@@ -6011,7 +6011,7 @@ begin
   intLen := 2 * FUsedRulerBytesPerUnit;
   for intLoop := 0 to Pred(FBytesPerRow div FUsedRulerBytesPerUnit) do
   begin
-    sLoop := IntToRadixLen(intLoop, FRulerNumberBase, intLen);
+    sLoop := IntToRadix(intLoop, FRulerNumberBase, intLen);
     if Length(sLoop) > intLen then
       Delete(sLoop, 1, Length(sLoop) - intLen);
     FRulerString := FRulerString + sLoop;
