@@ -29,6 +29,7 @@ object MainForm: TMainForm
     ParentFont = False
     TabOrder = 0
     BytesPerRow = 16
+    BytesPerColumn = 1
     Translation = tkAsIs
     OffsetFormat = '-!10:0x|'
     Colors.Background = clWindow

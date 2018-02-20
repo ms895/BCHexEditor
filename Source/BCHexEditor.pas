@@ -792,7 +792,7 @@ type
     property BytesPerRow: integer read FBytesPerRow write SetBytesPerRow;
     // number of bytes to show in each column
     property BytesPerColumn: integer read GetBytesPerColumn write
-      SetBytesPerColumn default 2;
+      SetBytesPerColumn default 1 ;
     (* translation kind of the data (used to show characters on and to handle key presses in the char pane),
        (see also @link(TBCHTranslationKind))
     *)
@@ -1587,9 +1587,8 @@ function GetTempName: string;
   - IntToRadix(100,8) means IntToOctal<br>
   <br>
   hint: Radix must be in the range of 2..16*)
-function IntToRadix(Value: int64; Radix: byte): string; overload;
-// translate an integer to a radix coded string and left fill with 0 (see also @link(IntToRadix))
-function IntToRadix(Value: int64; Radix, Len: byte): string; overload;
+
+function IntToRadix(Value: int64; Radix: byte; Len: byte = 0): string; overload;
 // translate an integer to an octal string (see also @link(IntToRadix))
 function IntToOctal(const Value: integer): string;
 
@@ -1954,16 +1953,9 @@ begin
   aTO[LIntLoop2] := #0;
 end;
 
-// translate an integer to a radix coded string
-
-function IntToRadix(Value: int64; Radix: byte): string; inline;
-begin
-  Result := IntToRadix(Value, Radix, 0);
-end;
-
 // translate an integer to a radix coded string and left fill with 0
 
-function IntToRadix(Value: int64; Radix, Len: byte): string;
+function IntToRadix(Value: int64; Radix: byte; Len: byte = 0): string;
 begin
   Result := '';
   repeat
