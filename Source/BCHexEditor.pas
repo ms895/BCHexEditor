@@ -290,6 +290,20 @@ type
 type
   // persistent color storage (contains the colors in hex editors)
   TBCHColors = class(TPersistent)
+  private const
+    DefaultActiveFieldBackground = clWindow;
+    DefaultBackground = clWindow;
+    DefaultChangedBackground = $A8FFFF;
+    DefaultChangedText = clMaroon;
+    DefaultCurrentOffset = clBtnHighlight;
+    DefaultCurrentOffsetBackground = clBtnShadow;
+    DefaultCursorFrame = clNavy;
+    DefaultEvenColumn = clNavy;
+    DefaultGrid = clBtnFace;
+    DefaultNonFocusCursorFrame = clAqua;
+    DefaultOddColumn = clBlue;
+    DefaultOffset = clBlack;
+    DefaultOffsetBackground = clBtnFace;
   private
     FParent: TControl;
     FOffset: TColor;
@@ -320,6 +334,8 @@ type
     procedure SetActiveFieldBackground(const Value: TColor);
     procedure SetCurrentOffsetBackground(const Value: TColor);
     procedure SetNonFocusCursorFrame(const Value: TColor);
+  protected
+    function IsStored(): boolean;
   public
     // @exclude(constructor)
     constructor Create(Parent: TControl);
@@ -328,37 +344,32 @@ type
     // parent hex editor control
     property Parent: TControl read FParent write SetParent;
   published
-    // background color
-    property Background: TColor read FBackground write SetBackground;
-    // background color of modified bytes (in overwrite mode)
-    property ChangedBackground: TColor read FChangedBackground write
-      SetChangedBackground;
-    // foreground color of modified bytes (in overwrite mode)
-    property ChangedText: TColor read FChangedText write SetChangedText;
-    // color of the cursor and position frame in the second pane
-    property CursorFrame: TColor read FCursorFrame write SetCursorFrame;
-    // foreground color of the line offsets
-    property Offset: TColor read FOffset write SetOffset;
-    // foreground color of odd columns
-    property OddColumn: TColor read FOddColumn write SetOddColumn;
-    // foreground color of even columns
-    property EvenColumn: TColor read FEvenColumn write SetEvenColumn;
-    // background color of the current line in the offset pane (gutter)
-    property CurrentOffsetBackground: TColor read FCurrentOffsetBackground write
-      SetCurrentOffsetBackground;
-    // background color of the offset pane (gutter)
-    property OffsetBackground: TColor read FOffsetBackground write
-      SetOffsetBackground;
-    // foreground color of the current line in the offset pane (gutter)
-    property CurrentOffset: TColor read FCurrentOffset write SetCurrentOffset;
-    // pen color of the grid
-    property Grid: TColor read FGrid write SetGrid;
-    // color of a cursor frame in a non-focused editor
-    property NonFocusCursorFrame: TColor read FNonFocusCursorFrame write
-      SetNonFocusCursorFrame;
     // background color of the active field (hex/chars)
-    property ActiveFieldBackground: TColor read FActiveFieldBackground write
-      SetActiveFieldBackground;
+    property ActiveFieldBackground: TColor read FActiveFieldBackground write SetActiveFieldBackground default DefaultActiveFieldBackground;
+    // background color
+    property Background: TColor read FBackground write SetBackground default DefaultBackground;
+    // background color of modified bytes (in overwrite mode)
+    property ChangedBackground: TColor read FChangedBackground write SetChangedBackground default DefaultChangedBackground;
+    // foreground color of modified bytes (in overwrite mode)
+    property ChangedText: TColor read FChangedText write SetChangedText default DefaultChangedText;
+    // foreground color of the current line in the offset pane (gutter)
+    property CurrentOffset: TColor read FCurrentOffset write SetCurrentOffset default DefaultCurrentOffset;
+    // background color of the current line in the offset pane (gutter)
+    property CurrentOffsetBackground: TColor read FCurrentOffsetBackground write SetCurrentOffsetBackground default DefaultCurrentOffsetBackground;
+    // color of the cursor and position frame in the second pane
+    property CursorFrame: TColor read FCursorFrame write SetCursorFrame default DefaultCursorFrame;
+    // foreground color of even columns
+    property EvenColumn: TColor read FEvenColumn write SetEvenColumn default DefaultEvenColumn;
+    // pen color of the grid
+    property Grid: TColor read FGrid write SetGrid default DefaultGrid;
+    // color of a cursor frame in a non-focused editor
+    property NonFocusCursorFrame: TColor read FNonFocusCursorFrame write SetNonFocusCursorFrame default DefaultNonFocusCursorFrame;
+    // foreground color of odd columns
+    property OddColumn: TColor read FOddColumn write SetOddColumn default DefaultOddColumn;
+    // foreground color of the line offsets
+    property Offset: TColor read FOffset write SetOffset default DefaultOffset;
+    // background color of the offset pane (gutter)
+    property OffsetBackground: TColor read FOffsetBackground write SetOffsetBackground default DefaultOffsetBackground;
 
   end;
 
@@ -431,6 +442,18 @@ type
 
   TCustomBCHexEditor = class(TCustomGrid)
 
+  protected const
+    DefaultBytesPerCol = 2;
+    DefaultBytesPerColumn = DefaultBytesPerCol div 2;
+    DefaultBytesPerRow = 16;
+    DefaultCursor = crIBeam;
+    DefaultDrawGridLines = False;
+    DefaultFocusFrame = True;
+    DefaultFontName = 'Courier New';
+    DefaultFontSize = 11;
+    DefaultAllowInsertMode = True;
+    DefaultOffsetFormat = '-!10:0x|';
+    DefaultTranslation = tkAsIs;
   private
 
     FIsViewSyncing: boolean;
@@ -526,7 +549,9 @@ type
     function IsInsertModePossible: boolean;
 
     procedure RecalcBytesPerRow;
+    function IsColorsStored(): boolean;
     function IsFileSizeFixed: boolean;
+    function IsFontStored(): boolean;
     procedure InternalErase(const KeyWasBackspace: boolean; const UndoDesc:
       string = '');
     procedure SetReadOnlyView(const Value: boolean);
@@ -615,6 +640,7 @@ type
     // convert a given amount of data from ansi to something different and vice versa
     procedure InternalConvertRange(const aFrom, aTo: integer; const aTransFrom,
       aTransTo: TBCHTranslationKind);
+    function IsOffsetFormatStored(): boolean;
     // move data in buffer to a different position
     procedure MoveFileMem(const aFrom, aTo, aCount: integer);
     function GetBookmark(Index: byte): TBCHBookmark;
@@ -789,15 +815,13 @@ type
     // automatically calculate @link(BytesPerRow) depending on the width of the editor
     property AutoBytesPerRow: boolean read FAutoBytesPerRow write SetAutoBytesPerRow default False;
     // number of bytes to show in each row
-    property BytesPerRow: integer read FBytesPerRow write SetBytesPerRow;
+    property BytesPerRow: integer read FBytesPerRow write SetBytesPerRow default DefaultBytesPerRow;
     // number of bytes to show in each column
-    property BytesPerColumn: integer read GetBytesPerColumn write
-      SetBytesPerColumn default 1 ;
+    property BytesPerColumn: integer read GetBytesPerColumn write SetBytesPerColumn default DefaultBytesPerColumn;
     (* translation kind of the data (used to show characters on and to handle key presses in the char pane),
        (see also @link(TBCHTranslationKind))
     *)
-    property Translation: TBCHTranslationKind read FTranslation write
-      SetTranslation;
+    property Translation: TBCHTranslationKind read FTranslation write SetTranslation default DefaultTranslation;
     (* offset display ("line numbers") format, in the form<br>
        [r|c|&lt;HEXNUM&gt;%][-|&lt;HEXNUM&gt;!]&lt;HEXNUM&gt;:[Prefix]|[Suffix]<br>
        (&lt;HEXNUM&gt; means a number in hexadecimal format (without prefix/suffix))<br><br>
@@ -840,7 +864,7 @@ type
        <li>the suffix to put after the "number string" (e.g. 'h' to show hex numbers)</li>
        <li>this field may be omitted</li></ul>
     *)
-    property OffsetFormat: string read GetOffsetFormat write SetOffsetFormat;
+    property OffsetFormat: string read GetOffsetFormat write SetOffsetFormat stored IsOffsetFormatStored;
 
     (* if this handler is assigned, the @link(OffsetFormat) is not used to
        create "line numbers", but the application tells the editor how to format the offset text
@@ -862,12 +886,12 @@ type
     property CaretKind: TBCHCaretKind read FCaretKind write SetCaretKind default
       ckAuto;
     // colors to display (see @link(TBCHColors))
-    property Colors: TBCHColors read FColors write SetColors;
+    property Colors: TBCHColors read FColors write SetColors stored IsColorsStored;
     (* if FocusFrame is set to True, the current caret position will be displayed in the
        second field (hex - characters) as a dotted focus frame, if set to False, it will
        be shown as an ordinary rectangle
     *)
-    property FocusFrame: boolean read FFocusFrame write SetFocusFrame;
+    property FocusFrame: boolean read FFocusFrame write SetFocusFrame default DefaultFocusFrame;
     (* if SwapNibbles is set to True, the hex pane will show all bytes in the order
        lower 4 bits-higher 4 bits (i.e. the value 192 dec = C0 hex will be drawn as
        0C). if set to False, hex values will be displayed in usual order. this
@@ -887,7 +911,7 @@ type
        (see also @link(InsertMode) and @link(NoSizeChange))
     *)
     property AllowInsertMode: boolean read FAllowInsertMode write
-      SetAllowInsertMode default True;
+      SetAllowInsertMode default DefaultAllowInsertMode;
     (* if set to True, the Tab key is used to switch the caret between hex and character pane.
        if set to False, the Tab key can be used to switch between controls. then the
        combination CTRL+T is used to switch the panes
@@ -929,7 +953,7 @@ type
     // replaces the currently selected data with the string's contents
     procedure SetSelectionAsText(const s: AnsiString);
     // if set to True, a grid is drawn
-    property DrawGridLines: boolean read FDrawGridLines write SetDrawGridLines;
+    property DrawGridLines: boolean read FDrawGridLines write SetDrawGridLines default DefaultDrawGridLines;
     // width of the offset display gutter, if set to -1, automatically adjust the gutter's width
     property GutterWidth: integer read FGutterWidth write SetGutterWidth default
       -1;
@@ -1276,6 +1300,12 @@ type
     procedure UpdateGetOffsetText;
     // center the current position vertically
     procedure CenterCursorPosition;
+
+
+  published
+    property Cursor default DefaultCursor;
+    property Font stored IsFontStored;
+    property ParentFont default False;
 
   end;
 
@@ -2102,7 +2132,7 @@ begin
   FSaveCellExtents := False;
 
   FColors := TBCHColors.Create(Self);
-  FDrawGridLines := False;
+  FDrawGridLines := DefaultDrawGridLines;
 
   ParentColor := False;
   FDataStorage := TBCHMemoryStream.Create;
@@ -2112,16 +2142,16 @@ begin
 
   FCharWidth := -1;
   FOffSetDisplayWidth := -1;
-  FBytesPerRow := 16;
+  FBytesPerRow := DefaultBytesPerRow;
   FCaretKind := ckAuto;
-  FFocusFrame := True;
+  FFocusFrame := DefaultFocusFrame;
   FSwapNibbles := 0;
   FFileName := '---';
 
-  Font.Name := 'Courier New';
-  Font.Size := 11;
+  Font.Name := DefaultFontName;
+  Font.Size := DefaultFontSize;
   BorderStyle := bsSingle;
-  FBytesPerCol := 4;
+  FBytesPerCol := DefaultBytesPerCol;
   CTL3D := False;
   Cursor := crIBeam;
   FModifiedBytes := TBits.Create;
@@ -2136,7 +2166,7 @@ begin
   RowHeights[1] := 0;
   ColCount := CalcColCount;
   RowCount := GRID_FIXED + 1;
-  FTranslation := tkAsIs;
+  FTranslation := DefaultTranslation;
   FModified := False;
   FIsFileReadonly := True;
   FBytesPerRowDup := 2 * FBytesPerRow;
@@ -2145,7 +2175,7 @@ begin
   FCaretBitmap := TBitmap.Create;
   FFixedFileSize := False;
   FFixedFileSizeOverride := False;
-  FAllowInsertMode := True;
+  FAllowInsertMode := DefaultAllowInsertMode;
   FInsertModeOn := False;
   FWantTabs := True;
   FReadOnlyView := False;
@@ -3761,6 +3791,11 @@ begin
   finally
     OldCursor;
   end;
+end;
+
+function TCustomBCHexEditor.IsOffsetFormatStored(): boolean;
+begin
+  Result := FOffsetFormat.Format <> DefaultOffsetFormat;
 end;
 
 procedure TCustomBCHexEditor.ConvertRange(const aFrom, aTo: integer; const
@@ -6294,12 +6329,23 @@ begin
   Result := ACol > (GRID_FIXED + FBytesPerRowDup);
 end;
 
+function TCustomBCHexEditor.IsColorsStored(): boolean;
+begin
+  Result := FColors.IsStored();
+end;
+
 function TCustomBCHexEditor.IsFileSizeFixed: boolean;
 begin
   if FFixedFileSizeOverride then
     Result := False
   else
     Result := FFixedFileSize;
+end;
+
+function TCustomBCHexEditor.IsFontStored(): boolean;
+begin
+  Result := (Font.Name <> DefaultFontName)
+    or (Font.Size <> DefaultFontSize);
 end;
 
 function TCustomBCHexEditor.IsInsertModePossible: boolean;
@@ -6648,21 +6694,39 @@ end;
 constructor TBCHColors.Create(Parent: TControl);
 begin
   inherited Create;
-  FBackground := clWindow;
-  FActiveFieldBackground := clWindow;
-  FChangedText := clMaroon;
-  FCursorFrame := clNavy;
-  FNonFocusCursorFrame := clAqua;
-  FOffset := clBlack;
-  FOddColumn := clBlue;
-  FEvenColumn := clNavy;
-  FChangedBackground := $00A8FFFF;
-  FCurrentOffsetBackground := clBtnShadow;
-  FCurrentOffset := clBtnHighLight;
-  FOffsetBackground := clBtnFace;
-  FGrid := clBtnFace;
+
+  FActiveFieldBackground := DefaultActiveFieldBackground;
+  FBackground := DefaultBackground;
+  FChangedBackground := DefaultChangedBackground;
+  FChangedText := DefaultChangedText;
+  FCurrentOffset := DefaultCurrentOffset;
+  FCurrentOffsetBackground := DefaultCurrentOffsetBackground;
+  FCursorFrame := DefaultCursorFrame;
+  FEvenColumn := DefaultEvenColumn;
+  FGrid := DefaultGrid;
+  FNonFocusCursorFrame := DefaultNonFocusCursorFrame;
+  FOddColumn := DefaultOddColumn;
+  FOffset := DefaultOffset;
+  FOffsetBackground := DefaultOffsetBackground;
   FParent := Parent;
 
+end;
+
+function TBCHColors.IsStored(): boolean;
+begin
+  Result := (FActiveFieldBackground <> DefaultActiveFieldBackground)
+    or (FBackground <> DefaultBackground)
+    or (FChangedBackground <> DefaultChangedBackground)
+    or (FChangedText <> DefaultChangedText)
+    or (FCurrentOffset <> DefaultCurrentOffset)
+    or (FCurrentOffsetBackground <> DefaultCurrentOffsetBackground)
+    or (FCursorFrame <> DefaultCursorFrame)
+    or (FEvenColumn <> DefaultEvenColumn)
+    or (FGrid <> DefaultGrid)
+    or (FNonFocusCursorFrame <> DefaultNonFocusCursorFrame)
+    or (FOddColumn <> DefaultOddColumn)
+    or (FOffset <> DefaultOffset)
+    or (FOffsetBackground <> DefaultOffsetBackground);
 end;
 
 procedure TBCHColors.SetBackground(const Value: TColor);

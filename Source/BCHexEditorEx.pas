@@ -3100,9 +3100,9 @@ function TBCHCanvasPrinter.DrawOrCalc(const JustCalc: boolean; const Page:
       else
       begin
         if FEditor.HexLowerCase then
-          Result := LowerCase(IntToRadixLen(FEditor.Data[CurPosition], 16, 2))
+          Result := LowerCase(IntToRadix(FEditor.Data[CurPosition], 16, 2))
         else
-          Result := UpperCase(IntToRadixLen(FEditor.Data[CurPosition], 16, 2));
+          Result := UpperCase(IntToRadix(FEditor.Data[CurPosition], 16, 2));
         if FEditor.SwapNibbles and (Length(Result) = 2) then
           Result := Result[2] + Result[1];
       end;
