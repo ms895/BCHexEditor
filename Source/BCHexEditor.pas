@@ -1618,7 +1618,7 @@ function GetTempName: string;
   <br>
   hint: Radix must be in the range of 2..16*)
 
-function IntToRadix(Value: int64; Radix: byte; Len: byte = 0): string; overload;
+function IntToRadix(Value: uint64; Radix: byte; Len: byte = 0): string;
 // translate an integer to an octal string (see also @link(IntToRadix))
 function IntToOctal(const Value: integer): string;
 
@@ -1985,7 +1985,7 @@ end;
 
 // translate an integer to a radix coded string and left fill with 0
 
-function IntToRadix(Value: int64; Radix: byte; Len: byte = 0): string;
+function IntToRadix(Value: uint64; Radix: byte; Len: byte = 0): string;
 begin
   Result := '';
   repeat
