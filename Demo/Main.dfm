@@ -19,33 +19,7 @@ object MainForm: TMainForm
     Top = 0
     Width = 706
     Height = 530
-    Cursor = crIBeam
     Align = alClient
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -16
-    Font.Name = 'Courier New'
-    Font.Style = []
-    ParentFont = False
     TabOrder = 0
-    BytesPerRow = 16
-    BytesPerColumn = 1
-    Translation = tkAsIs
-    OffsetFormat = '-!10:0x|'
-    Colors.Background = clWindow
-    Colors.ChangedBackground = 11075583
-    Colors.ChangedText = clMaroon
-    Colors.CursorFrame = clNavy
-    Colors.Offset = clBlack
-    Colors.OddColumn = clBlue
-    Colors.EvenColumn = clNavy
-    Colors.CurrentOffsetBackground = clBtnShadow
-    Colors.OffsetBackground = clBtnFace
-    Colors.CurrentOffset = clBtnHighlight
-    Colors.Grid = clBtnFace
-    Colors.NonFocusCursorFrame = clAqua
-    Colors.ActiveFieldBackground = clWindow
-    FocusFrame = True
-    DrawGridLines = False
   end
 end

@@ -5,8 +5,8 @@ interface
 uses
   SysUtils, Variants, Classes,
   Windows, Messages,
-  Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
-  BCHexEditor, Vcl.Grids;
+  Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Grids,
+  BCHexEditor;
 
 type
   TMainForm = class(TForm)
