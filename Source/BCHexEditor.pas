@@ -6915,7 +6915,7 @@ var
 
   function PUndoRec: PBCHUndoRec;
   begin
-    Result := PBCHUndoRec(@(PChar(Memory)[urPos]))
+    Result := PBCHUndoRec(@(PAnsiChar(Memory)[urPos]))
   end;
   //LPurUndoRec: PMPHUndoRec;
 
@@ -6982,7 +6982,7 @@ var
         end
         else
         begin
-          Move(PChar(Memory)[LIntRecSize], Memory^, Size - LIntRecSize);
+          Move(PAnsiChar(Memory)[LIntRecSize], Memory^, Size - LIntRecSize);
           Size := Size - LIntRecSize;
           if FCount > 0 then
             Dec(FCount);
@@ -7219,7 +7219,7 @@ begin
     case LEnumUndo of
       ufKindBytesChanged:
         begin
-          FEditor.WriteBuffer(PChar(Memory)[Position - 1], LRecUndo.Pos,
+          FEditor.WriteBuffer(PAnsiChar(Memory)[Position - 1], LRecUndo.Pos,
             LRecUndo.Count);
           FEditor.SetChanged(LRecUndo.Pos, ufFlagByte1Changed in
             LRecUndo.Flags);
@@ -7332,7 +7332,7 @@ begin
         end;
       ufKindConvert:
         begin
-          FEditor.WriteBuffer(PChar(Memory)[Position - 1], LRecUndo.Pos,
+          FEditor.WriteBuffer(PAnsiChar(Memory)[Position - 1], LRecUndo.Pos,
             LRecUndo.Count);
           PopulateUndo(LRecUndo);
           if DWORD(FEditor.FModifiedBytes.Size) >= (LRecUndo.Pos) then
